@@ -294,7 +294,7 @@ adrs:
   - id: ADR-008
     titulo: "Audit log imutável (append-only) antes de produção real"
     data: "2026-03-19"
-    status: "aceito — implementação Sprint 5"
+    status: "implementado — Sprint 5 (2026-03-19)"
     contexto: >
       O agents_log atual permite UPDATE nas linhas — qualquer agente pode
       sobrescrever um registro de execução. Em um sistema que opera negócios
