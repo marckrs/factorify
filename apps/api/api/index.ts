@@ -1,87 +1,100 @@
-// Vercel serverless handler — wraps Fastify for serverless execution
+// Vercel serverless handler — standalone (no workspace deps)
+// Full LLM execution runs locally; this serves health + task CRUD
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import Fastify from 'fastify'
-import cors from '@fastify/cors'
-import helmet from '@fastify/helmet'
-import { createTask, getTask } from '../src/db.js'
-import { executeTask } from '../src/executor.js'
-import type { CreateTaskRequest, HealthResponse } from '../src/types.js'
+import { createClient } from '@supabase/supabase-js'
 
-const app = Fastify({ logger: false })
-const VERSION = '0.2.0'
-const START = Date.now()
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_KEY!,
+)
 
-let initialized = false
+function cors(res: VercelResponse) {
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-api-key')
+}
 
-async function init() {
-  if (initialized) return
-  await app.register(cors, { origin: true })
-  await app.register(helmet, { contentSecurityPolicy: false })
+function checkAuth(req: VercelRequest): boolean {
+  const expected = process.env.FACTORY_API_KEY
+  if (!expected) return true
+  return req.headers['x-api-key'] === expected
+}
 
-  app.addHook('onRequest', async (req, reply) => {
-    if (req.url === '/health' || req.url === '/api/health') return
-    const apiKey = req.headers['x-api-key']
-    const expected = process.env.FACTORY_API_KEY
-    if (expected && apiKey !== expected) {
-      reply.status(401).send({ error: 'Invalid API key' })
-    }
-  })
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  cors(res)
+  if (req.method === 'OPTIONS') { res.status(200).end(); return }
 
-  app.get('/health', async () => ({
-    status: 'ok', version: VERSION, uptime: Math.floor((Date.now() - START) / 1000),
-  } satisfies HealthResponse))
+  const path = req.url?.split('?')[0] ?? '/'
 
-  app.post<{ Body: CreateTaskRequest }>('/tasks', async (req, reply) => {
-    const { task, priority, product_id, context, dry_run } = req.body ?? {} as CreateTaskRequest
-    if (!task || task.length < 10) {
-      reply.status(400).send({ error: 'Task must be at least 10 characters' })
-      return
-    }
-    const task_id = await createTask({
-      task, priority: priority ?? 'normal', product_id, context, dry_run: dry_run ?? false,
-    })
-    setImmediate(() => {
-      executeTask({ task_id, task, priority, product_id, context, dry_run })
-        .catch(err => console.error({ event: 'execute_error', task_id, error: String(err) }))
-    })
-    reply.status(202).send({
-      task_id, status: 'queued',
-      message: 'Task accepted. Poll GET /tasks/:id for status.',
-      created_at: new Date().toISOString(),
-    })
-  })
+  // Health
+  if (path === '/health' || path === '/api/health') {
+    res.json({ status: 'ok', version: '0.2.0', mode: 'serverless' })
+    return
+  }
 
-  app.get<{ Params: { id: string } }>('/tasks/:id', async (req, reply) => {
-    try {
-      const task = await getTask(req.params.id)
-      reply.send(task)
-    } catch { reply.status(404).send({ error: 'Task not found' }) }
-  })
+  // Auth check for all other routes
+  if (!checkAuth(req)) {
+    res.status(401).json({ error: 'Invalid API key' })
+    return
+  }
 
-  app.get('/tasks', async (_req, reply) => {
-    const { supabase } = await import('../src/db.js')
+  // GET /tasks — list
+  if (req.method === 'GET' && (path === '/tasks' || path === '/api/tasks')) {
     const { data } = await supabase
       .from('factory_tasks')
       .select('id, task, priority, status, duration_ms, metadata, created_at, updated_at')
       .order('created_at', { ascending: false })
       .limit(20)
-    reply.send({ tasks: data ?? [] })
-  })
-
-  await app.ready()
-  initialized = true
-}
-
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Validate env on first call
-  for (const key of ['SUPABASE_URL', 'SUPABASE_SERVICE_KEY', 'ANTHROPIC_API_KEY']) {
-    if (!process.env[key]) {
-      res.status(500).json({ error: `Missing env: ${key}` })
-      return
-    }
+    res.json({ tasks: data ?? [] })
+    return
   }
 
-  await init()
-  await app.ready()
-  app.server.emit('request', req, res)
+  // GET /tasks/:id
+  const taskMatch = path.match(/\/(?:api\/)?tasks\/([0-9a-f-]+)/)
+  if (req.method === 'GET' && taskMatch) {
+    const { data, error } = await supabase
+      .from('factory_tasks')
+      .select('*')
+      .eq('id', taskMatch[1])
+      .single()
+    if (error) { res.status(404).json({ error: 'Task not found' }); return }
+    res.json(data)
+    return
+  }
+
+  // POST /tasks — create (queued only — LLM execution needs local API)
+  if (req.method === 'POST' && (path === '/tasks' || path === '/api/tasks')) {
+    const body = req.body ?? {}
+    if (!body.task || body.task.length < 10) {
+      res.status(400).json({ error: 'Task must be at least 10 characters' })
+      return
+    }
+
+    const { data, error } = await supabase
+      .from('factory_tasks')
+      .insert({
+        task:       body.task,
+        priority:   body.priority ?? 'normal',
+        product_id: body.product_id ?? null,
+        context:    body.context ?? null,
+        dry_run:    body.dry_run ?? false,
+        status:     'queued',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .select('id')
+      .single()
+
+    if (error) { res.status(500).json({ error: error.message }); return }
+
+    res.status(202).json({
+      task_id:    (data as { id: string }).id,
+      status:     'queued',
+      message:    'Task queued. Note: LLM execution requires local API server.',
+      created_at: new Date().toISOString(),
+    })
+    return
+  }
+
+  res.status(404).json({ error: 'Not found' })
 }
