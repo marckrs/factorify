@@ -8,6 +8,7 @@
 
 import Anthropic from '@anthropic-ai/sdk'
 import type { SubTask, AgentSpec, TaskResult } from '@factory/orchestrator'
+import { routeToModel } from '@factory/orchestrator'
 
 const AGENT_SYSTEM_PROMPTS: Record<string, string> = {
   'code-smith': `You are the Code Agent of the Factorify platform.
@@ -124,6 +125,19 @@ export class LlmAgentRunner {
     const startTime = performance.now()
 
     try {
+      // Cost-Aware Routing (ADR-013) — pick cheapest model that fits
+      const routing = routeToModel({
+        agent: agent.name,
+        task:  subtask.description,
+        priority: subtask.priority,
+      })
+
+      console.log(JSON.stringify({
+        level: 'info', event: 'model_routed',
+        agent: agent.name, tier: routing.tier,
+        reasoning: routing.reasoning, cost_mult: routing.cost_multiplier,
+      }))
+
       const systemPrompt = AGENT_SYSTEM_PROMPTS[agent.name] ?? DEFAULT_SYSTEM_PROMPT
 
       const userMessage = [
@@ -152,7 +166,7 @@ export class LlmAgentRunner {
       ]
 
       const response = await this.client.messages.create({
-        model:      this.model,
+        model:      routing.model,
         max_tokens: 4096,
         system:     systemBlocks,
         messages:   [{ role: 'user', content: userMessage }],
