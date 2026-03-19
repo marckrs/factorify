@@ -9,6 +9,9 @@
 import { randomUUID }        from 'node:crypto'
 import { Orchestrator }      from '@factory/orchestrator'
 import type { Task, AgentSpec, TaskPriority } from '@factory/orchestrator'
+import { LearningLayer }    from '@factory/attnres-memory'
+import { SupabaseAdapter }   from '@factory/attnres-memory'
+import { createClient }      from '@supabase/supabase-js'
 import { LlmAgentRunner }   from './llm-runner.js'
 import { supabase }          from './db.js'
 
@@ -21,6 +24,13 @@ const AGENTS: AgentSpec[] = [
   { name: 'biz-analyst',    type: 'biz', capabilities: ['metrics', 'okrs', 'reporting'],     autonomy_level: 'full' },
 ]
 
+// Map task type to agent name for LearningLayer
+const TYPE_TO_AGENT: Record<string, string> = {
+  dev: 'code-smith',
+  ops: 'infra-pilot',
+  biz: 'biz-analyst',
+}
+
 // ── Create LLM-powered runner ─────────────────────────────────
 const llmRunner = new LlmAgentRunner({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -31,8 +41,34 @@ const llmRunner = new LlmAgentRunner({
 const orchestrator = new Orchestrator({
   agents:           AGENTS,
   concurrencyLimit: 3,
-  runner:           llmRunner as never, // LlmAgentRunner implements the same interface
+  runner:           llmRunner as never,
 })
+
+// ── Create LearningLayer (Reflexion + AttnRes) ────────────────
+const learningClient = {
+  messages: {
+    async create(p: { model: string; max_tokens: number; system: string; messages: Array<{ role: string; content: string }> }) {
+      const Anthropic = (await import('@anthropic-ai/sdk')).default
+      const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
+      return client.messages.create({
+        model:      p.model,
+        max_tokens: p.max_tokens,
+        system:     p.system,
+        messages:   p.messages as Array<{ role: 'user' | 'assistant'; content: string }>,
+      })
+    }
+  }
+}
+
+const learningAdapter = new SupabaseAdapter(
+  createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_KEY!)
+)
+
+const learningLayer = new LearningLayer(
+  learningClient,
+  learningAdapter,
+  'claude-sonnet-4-20250514',
+)
 
 // ── Update task status in Supabase ────────────────────────────
 async function updateTask(
@@ -107,6 +143,11 @@ export async function executeTask(params: {
       return
     }
 
+    // Build subtask lookup for LearningLayer (id → type/description)
+    const subtaskMap = new Map(
+      plan.subtasks.map(st => [st.id, { type: st.type, description: st.description }])
+    )
+
     // Phase 2: Execute (calls Claude API for each subtask)
     llmRunner.clearTokenTracking()
     const result = await orchestrator.execute(plan)
@@ -162,6 +203,11 @@ export async function executeTask(params: {
       success:            result.success,
     })
 
+    // Phase 3: Learning — analyze each subtask result (fire-and-forget)
+    setImmediate(() => {
+      void analyzeLearnings(subtaskResults, subtaskMap, task, task_id, priority)
+    })
+
   } catch (err) {
     const message = (err as Error).message
     console.error(JSON.stringify({
@@ -176,5 +222,71 @@ export async function executeTask(params: {
       error:       message,
       duration_ms: Math.round(performance.now() - startTime),
     })
+  }
+}
+
+// ── LearningLayer analysis (fire-and-forget) ──────────────────
+async function analyzeLearnings(
+  subtaskResults: Array<{ task_id: string; status: string; output?: string; error?: string; duration_ms: number }>,
+  subtaskMap:     Map<string, { type: string; description: string }>,
+  task:           string,
+  taskId:         string,
+  priority?:      string,
+): Promise<void> {
+  for (const r of subtaskResults) {
+    const stInfo = subtaskMap.get(r.task_id)
+    const agent  = TYPE_TO_AGENT[stInfo?.type ?? 'dev'] ?? 'code-smith'
+
+    try {
+      const analysis = await learningLayer.analyze(
+        {
+          id:          r.task_id,
+          description: stInfo?.description ?? task.slice(0, 500),
+          type:        stInfo?.type ?? 'dev',
+          agent,
+          priority:    priority ?? 'normal',
+        },
+        {
+          task_id:     r.task_id,
+          status:      r.status,
+          output:      r.output,
+          error:       r.error,
+          duration_ms: r.duration_ms,
+          success:     r.status === 'completed',
+        },
+        taskId,
+      )
+
+      if (analysis.has_learning) {
+        console.log(JSON.stringify({
+          level:   'info',
+          event:   'learning_captured',
+          task_id: taskId,
+          agent,
+          count:   analysis.learnings.length,
+          summary: analysis.summary,
+        }))
+
+        // Persist to agent_learnings table
+        for (const learning of analysis.learnings) {
+          await supabase.from('agent_learnings').upsert({
+            learning_id: learning.id,
+            category:    learning.category,
+            agent_type:  learning.agent,
+            title:       learning.title,
+            description: learning.description,
+            context:     learning.context,
+            evidence:    learning.evidence,
+            importance:  learning.importance,
+            occurrences: learning.occurrences,
+            pattern_key: `${learning.agent}::${learning.title.toLowerCase().replace(/\s+/g, '_')}`.slice(0, 80),
+            session_id:  taskId,
+            last_seen:   new Date().toISOString(),
+          }, { onConflict: 'learning_id' })
+        }
+      }
+    } catch {
+      // LearningLayer never crashes the pipeline
+    }
   }
 }
