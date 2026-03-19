@@ -172,10 +172,16 @@ export class LlmAgentRunner {
         messages:   [{ role: 'user', content: userMessage }],
       })
 
-      const output = response.content
+      let output = response.content
         .filter((b): b is Anthropic.TextBlock => b.type === 'text')
         .map(b => b.text)
         .join('\n')
+
+      // Self-Critique (ADR-014) — code/test/review agents self-review
+      const CRITIQUE_AGENTS = ['code-smith', 'test-engineer', 'review-guard']
+      if (CRITIQUE_AGENTS.includes(agent.name)) {
+        output = await this.selfCritique(agent.name, subtask.description, output)
+      }
 
       const duration_ms = Math.round(performance.now() - startTime)
 
@@ -232,6 +238,40 @@ export class LlmAgentRunner {
         error:       message,
         duration_ms,
       }
+    }
+  }
+
+  // Self-Critique: haiku reviews agent output before submitting (ADR-014)
+  private async selfCritique(agent: string, task: string, output: string): Promise<string> {
+    try {
+      const response = await this.client.messages.create({
+        model:      'claude-haiku-4-5-20251001',
+        max_tokens: 1024,
+        system:     'You are a strict code reviewer. Respond with JSON only: {"approved":boolean,"score":0-10,"issues":["..."],"revised":"corrected output or null"}',
+        messages:   [{
+          role: 'user',
+          content: `Agent: ${agent}\nTask: ${task}\nOutput (first 2000 chars):\n${output.slice(0, 2000)}\n\nReview strictly. Score < 7 means provide revised output.`,
+        }],
+      })
+
+      const raw = response.content
+        .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+        .map(b => b.text).join('')
+
+      const clean = raw.replace(/```json\n?|```\n?/g, '').trim()
+      const critique = JSON.parse(clean) as { approved: boolean; score: number; issues: string[]; revised: string | null }
+
+      if (!critique.approved && critique.revised) {
+        console.log(JSON.stringify({
+          level: 'info', event: 'self_critique_revised',
+          agent, score: critique.score, issues: critique.issues,
+        }))
+        return critique.revised
+      }
+
+      return output
+    } catch {
+      return output // fail-open
     }
   }
 }
