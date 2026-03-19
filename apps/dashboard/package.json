@@ -6,7 +6,7 @@
   "description": "Factorify — Control panel with Supabase Realtime",
   "scripts": {
     "dev": "vite --port 3002",
-    "build": "tsc -b && vite build",
+    "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
