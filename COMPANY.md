@@ -158,7 +158,7 @@ packages_atuais:
   - "@factory/attnres-memory"   # concluído — 15 testes passando
   - "@factory/orchestrator"      # concluído — 23 testes passando
   - "@factory/shared-types"      # concluído
-  - "@factory/mcp-servers"       # a criar — wrappers typed para MCPs
+  - "@factory/mcp-servers"       # Sprint 4 — wrappers typed para MCPs + canal A2A
   - "@factory/ui-primitives"     # a criar — componentes React base
 
 apps_da_plataforma:
@@ -290,6 +290,93 @@ adrs:
       contexto de sessão) nunca devem ser cacheados.
     impacto: "Redução estimada de 70-80% no custo de tokens dos agentes"
     implementacao: "apps/api/src/llm-runner.ts"
+
+  - id: ADR-008
+    titulo: "Audit log imutável (append-only) antes de produção real"
+    data: "2026-03-19"
+    status: "aceito — implementação Sprint 5"
+    contexto: >
+      O agents_log atual permite UPDATE nas linhas — qualquer agente pode
+      sobrescrever um registro de execução. Em um sistema que opera negócios
+      reais com usuários e dinheiro, isso é inaceitável para auditoria e
+      compliance (especialmente relevante dado o contexto regulatório BACEN
+      do fundador).
+    decisao: >
+      Antes de qualquer produto gerado pelo Factorify entrar em produção
+      com usuários reais, a tabela agents_log deve ser tornada append-only:
+      sem UPDATE, sem DELETE possível via API. Implementar via Postgres
+      Row-Level Security com policy que permite apenas INSERT e SELECT.
+      Adicionalmente, habilitar Supabase Point-in-Time Recovery (PITR)
+      para o projeto de produção.
+    implementacao:
+      - "RLS policy: DENY UPDATE e DELETE em agents_log para service_role"
+      - "Trigger Postgres: bloqueio adicional de UPDATE em nível de banco"
+      - "PITR: habilitar no Supabase dashboard (requer plano Pro)"
+      - "factory_tasks: mesma proteção — status pode avançar mas nunca voltar"
+    sprint: 5
+    prerequisito: "Antes de deploy de qualquer produto em produção com usuários reais"
+
+  - id: ADR-009
+    titulo: "Checkpointing de execução via estado persistente (LangGraph-inspired)"
+    data: "2026-03-19"
+    status: "candidato — Sprint 6"
+    contexto: >
+      O ParallelExecutor atual executa waves de tasks sem persistência
+      de estado intermediário. Se a API cair no meio de uma task de 8h
+      ou um wave de 5 agentes, toda a execução é perdida e começa do zero.
+      Com tarefas cada vez mais longas (pesquisa mostra duração dobrando
+      a cada 7 meses), isso se torna crítico.
+    decisao: >
+      Implementar checkpointing de estado de execução no Supabase.
+      Cada wave concluída persiste seu estado antes de avançar para
+      a próxima. Em caso de falha, o orquestrador retoma da última
+      wave concluída, não do início. Inspirado no LangGraph mas
+      implementado nativamente no stack TypeScript do Factorify —
+      sem adicionar dependência externa.
+    implementacao:
+      - "Nova tabela: execution_checkpoints (plan_id, wave_level, state_json, completed_at)"
+      - "ParallelExecutor: persist checkpoint após cada wave concluída"
+      - "MetaOrchestrator: detect e resume de checkpoint existente antes de executar"
+      - "Cleanup: remover checkpoints com > 7 dias automaticamente"
+    sprint: 6
+    prerequisito: "Tasks com duração > 30min em produção"
+
+  - id: ADR-010
+    titulo: "Protocolo A2A (Agent-to-Agent) para comunicação entre agentes"
+    data: "2026-03-19"
+    status: "candidato — Sprint 6"
+    contexto: >
+      Hoje agentes se comunicam via o orquestrador como intermediário:
+      o code agent nunca fala diretamente com o test agent — o orquestrador
+      gerencia toda a comunicação. Isso funciona bem para tasks simples,
+      mas cria gargalo e latência em tasks complexas onde agentes precisam
+      de múltiplos turnos de colaboração (ex: code agent e review agent
+      iterando juntos até aprovação).
+    decisao: >
+      Definir e implementar um protocolo A2A interno para o Factorify.
+      Agentes podem abrir canais diretos de comunicação para colaboração
+      multi-turno, sem passar pelo orquestrador a cada mensagem.
+      O orquestrador mantém supervisão (timeout, abort) mas não é
+      intermediário de cada turno. Protocolo baseado em mensagens JSON
+      via Supabase Realtime, com schema fixo para garantir interoperabilidade
+      entre agentes TypeScript e futuros agentes Python.
+    schema_mensagem:
+      from_agent:  "AgentRole"
+      to_agent:    "AgentRole"
+      session_id:  "string"
+      type:        "request | response | abort | checkpoint"
+      payload:     "string (JSON)"
+      created_at:  "timestamp"
+    implementacao:
+      - "Tabela: agent_messages (canal de comunicação A2A via Supabase Realtime)"
+      - "AgentRunner: método sendMessage(toAgent, payload) e subscribeToMessages()"
+      - "Protocolo: request → response → ack com timeout de 120s"
+      - "Orquestrador: monitora canais A2A, pode abort se detectar loop"
+    sprint: 6
+    casos_de_uso:
+      - "code agent + review agent: iteração até aprovação (máx 3 turnos)"
+      - "monitor agent + incident agent: handoff de alerta com contexto completo"
+      - "analytics agent + gtm agent: briefing de métricas para decisão de estratégia"
 ```
 
 ---
@@ -397,8 +484,10 @@ changelog:
       os produtos são outputs futuros, não escopo do projeto.
   - data: "2026-03-19"
     versao: "2.1.0"
-    autor: "Claude Code"
+    autor: "Marcelo Lermen + Claude"
     mudancas: >
       Sprint 2 completo. API conectada ao MetaOrchestrator com LLM real.
       Primeira task executada end-to-end. ADR-007 prompt caching.
+      Adicionados ADR-008 (audit log imutável), ADR-009 (checkpointing
+      de execução), ADR-010 (protocolo A2A entre agentes).
 ```
