@@ -1,11 +1,24 @@
 {
   "name": "@factory/cli",
   "version": "0.1.0",
-  "private": true,
-  "description": "Factorify — Interface de linha de comando para interagir com a plataforma",
+  "type": "module",
+  "description": "Factorify — CLI interface: factorify run \"...\"",
+  "bin": {
+    "factorify": "./src/index.ts"
+  },
   "scripts": {
-    "dev": "echo 'placeholder'",
-    "build": "echo 'placeholder'",
-    "test": "echo 'placeholder'"
+    "dev":   "tsx src/index.ts",
+    "build": "tsc --outDir dist",
+    "test":  "tsx tests/cli.test.ts"
+  },
+  "dependencies": {
+    "commander": "^12.0.0",
+    "ora":       "^8.0.0",
+    "chalk":     "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx":         "^4.0.0",
+    "typescript":  "^5.0.0"
   }
 }
