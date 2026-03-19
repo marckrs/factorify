@@ -1,0 +1,77 @@
+name: Deploy → Production (aprovação humana)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Digite CONFIRMAR para prosseguir com o deploy em produção'
+        required: true
+        type: string
+      reason:
+        description: 'Motivo do deploy (ex: v1.2.0 — nova feature X)'
+        required: true
+        type: string
+
+jobs:
+  validate-confirmation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate human confirmation
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "CONFIRMAR" ]; then
+            echo "Confirmação inválida. Digite exatamente: CONFIRMAR"
+            exit 1
+          fi
+          echo "Confirmação válida"
+          echo "Motivo: ${{ github.event.inputs.reason }}"
+
+  ci:
+    needs: validate-confirmation
+    uses: ./.github/workflows/ci.yml
+
+  deploy-production:
+    needs: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Deploy API to Vercel (production)
+        run: |
+          cd apps/api
+          npx vercel --token ${{ secrets.VERCEL_TOKEN }} \
+            --prod \
+            --yes \
+            --env SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+            --env SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY }} \
+            --env FACTORY_API_KEY=${{ secrets.FACTORY_API_KEY }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+
+      - name: Health check production
+        run: |
+          sleep 15
+          curl -f "${{ vars.PRODUCTION_API_URL }}/health" || exit 1
+          echo "Production API healthy"
+
+      - name: Log deployment
+        run: |
+          echo "## Deploy em Produção" >> $GITHUB_STEP_SUMMARY
+          echo "- **Motivo:** ${{ github.event.inputs.reason }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Por:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Data:** $(date -u '+%Y-%m-%d %H:%M UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
