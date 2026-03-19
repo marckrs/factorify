@@ -2,7 +2,6 @@
   "name": "@factory/dashboard",
   "version": "0.2.0",
   "private": true,
-  "type": "module",
   "description": "Factorify — Control panel with Supabase Realtime",
   "scripts": {
     "dev": "vite --port 3002",
