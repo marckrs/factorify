@@ -28,6 +28,8 @@ export type { OrchestratorOptions } from "./core/orchestrator.js";
 export { AgentRunner } from "./execution/agent-runner.js";
 export { ParallelExecutor } from "./execution/parallel-executor.js";
 export { ResultMerger } from "./execution/result-merger.js";
+export { CheckpointManager } from "./execution/checkpoint-manager.js";
+export type { CheckpointData } from "./execution/checkpoint-manager.js";
 
 // Cost-Aware Routing
 export { routeToModel, estimateMonthlySavings } from "./core/model-router.js";
