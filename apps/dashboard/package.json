@@ -6,22 +6,22 @@
   "description": "Factorify — Control panel with Supabase Realtime",
   "scripts": {
     "dev": "vite --port 3002",
-    "build": "./node_modules/.bin/vite build",
+    "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.0.0",
+    "@tailwindcss/vite": "^4.0.0",
+    "@vitejs/plugin-react": "^4.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-router-dom": "^7.13.1"
+    "react-router-dom": "^7.13.1",
+    "tailwindcss": "^4.0.0",
+    "vite": "^6.0.0"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "@vitejs/plugin-react": "^4.0.0",
-    "tailwindcss": "^4.0.0",
-    "typescript": "^5.0.0",
-    "vite": "^6.0.0"
+    "typescript": "^5.0.0"
   }
 }
