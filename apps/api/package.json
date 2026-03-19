@@ -1,0 +1,11 @@
+{
+  "name": "@factory/api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Factorify — API de entrada de tarefas para o orquestrador",
+  "scripts": {
+    "dev": "echo 'placeholder'",
+    "build": "echo 'placeholder'",
+    "test": "echo 'placeholder'"
+  }
+}

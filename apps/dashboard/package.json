@@ -1,0 +1,11 @@
+{
+  "name": "@factory/dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Factorify — Painel de controle da plataforma (status de agentes, OKRs, logs)",
+  "scripts": {
+    "dev": "echo 'placeholder'",
+    "build": "echo 'placeholder'",
+    "test": "echo 'placeholder'"
+  }
+}

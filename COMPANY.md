@@ -1,243 +1,386 @@
-# COMPANY.md — Constituicao Estrategica
-# Autonomous SaaS Factory | Marcelo Lermen | v1.0.0
-
-## Identidade da Empresa
-
-- **Nome**: Factorify — Autonomous SaaS Factory
-- **Fundador**: Marcelo Lermen (solo founder)
-- **Modelo**: One-person company operada por agentes de IA autônomos
-- **Jurisdição**: Brasil
-- **Idioma primário**: Português (BR) para comunicação com clientes; inglês para código e documentação técnica
-
-## Missão
-
-Construir e operar produtos SaaS de forma autônoma usando agentes de IA especializados,
-com supervisão humana apenas para decisões irreversíveis. Cada produto é concebido,
-desenvolvido, testado, deployado e operado majoritariamente por agentes — o fundador
-atua como estrategista, curator e gatekeeper final.
-
-## Visão
-
-Ser referência em SaaS factories autônomas na América Latina, provando que uma pessoa
-com a arquitetura certa de agentes pode competir com equipes inteiras — entregando
-produtos de qualidade superior com custos operacionais mínimos.
+# COMPANY.md — Constituição Estratégica do Factorify
+<!-- version: 2.0.0 | updated: 2026-03-19 | owner: Marcelo Lermen -->
+<!-- INSTRUÇÃO PARA AGENTES: Este documento é sua fonte primária de contexto
+     estratégico. Consulte-o antes de qualquer decisão de arquitetura,
+     priorização ou comunicação. Nunca contradiga os constraints desta
+     constituição sem aprovação humana explícita. -->
 
 ---
 
-## Primeiro Produto: UnifyStudio
+## 1. IDENTIDADE
 
-### O que é
-Plugin Figma para AdTech que converte Key Visuals (KVs) em pacotes completos de mídia
-em minutos. O designer cria um único KV e o UnifyStudio gera automaticamente todos os
-formatos necessários para campanhas multicanal.
-
-### Problema que resolve
-Designers e agências de performance gastam horas (às vezes dias) adaptando um KV para
-dezenas de formatos de mídia. O processo é repetitivo, propenso a erros e consome tempo
-criativo que poderia ser investido em estratégia e conceito.
-
-### Proposta de valor
-- **Para designers**: elimina trabalho repetitivo de adaptação de formatos
-- **Para agências**: reduz tempo de produção de dias para minutos
-- **Para traffic managers**: recebe pacotes completos e consistentes mais rápido
-
-### Mercado-alvo
-- **Primário**: Agências de performance brasileiras (pequenas e médias)
-- **Secundário**: Designers freelancers que atendem múltiplos clientes
-- **Terciário**: Traffic managers que precisam de assets rápidos para testes A/B
-
-### Modelo de negócio: SaaS por assinatura
-
-| Plano     | Preço (BRL/mês) | Limites                          | Público              |
-|-----------|------------------|----------------------------------|----------------------|
-| Starter   | R$ 49            | 50 exports/mês, 1 usuário       | Freelancers          |
-| Pro       | R$ 149           | 300 exports/mês, 5 usuários     | Pequenas agências    |
-| Agency    | R$ 399           | Ilimitado, 20 usuários, API     | Agências médias      |
-
-- Trial gratuito de 14 dias (sem cartão)
-- Billing via Stripe com suporte a PIX
-- Upsell via exports adicionais sob demanda
-
-### Métricas-chave (North Star)
-- **Ativação**: primeiro export completo em < 5 minutos após instalação
-- **Retenção**: uso semanal recorrente (>= 1 export por semana)
-- **Conversão**: trial-to-paid >= 15%
-- **NPS**: >= 50 nos primeiros 6 meses
+```yaml
+empresa:
+  nome:    "Factorify"
+  tipo:    "Plataforma de engenharia autônoma"
+  missao: >
+    Construir e operar uma plataforma que desenvolve, testa, revisa, faz
+    deploy e monitora software de forma quase totalmente autônoma —
+    reduzindo a intervenção humana ao mínimo necessário para decisões
+    estratégicas e aprovações de alto impacto.
+  visao: >
+    Em 12 meses, o Factorify opera como uma plataforma madura de agentic
+    software engineering, capaz de entregar produtos SaaS completos a partir
+    de uma descrição em linguagem natural, com menos de 4h/semana de
+    intervenção humana do fundador.
+  posicionamento: >
+    O Factorify não é um produto SaaS. É a fábrica que constrói produtos SaaS.
+    É o sistema operacional de uma empresa de software autônoma.
+```
 
 ---
 
-## Stack Tecnológico
+## 2. FASES DE EVOLUÇÃO
 
-### Core
-- **Linguagem**: TypeScript (strict mode, sem exceção)
-- **Runtime**: Node.js 22+
-- **Gerenciador de pacotes**: pnpm workspaces (monorepo)
+```yaml
+fases:
+  fase_1:
+    nome: "Agentic Software Engineering"
+    status: "ativa — em construção"
+    descricao: >
+      A plataforma recebe uma tarefa técnica em linguagem natural e a executa
+      de forma autônoma: decompõe em subtasks, roteia para agentes
+      especializados (DEV/OPS/BIZ), executa com memória seletiva (AttnRes),
+      testa, revisa, faz deploy e reporta. Humano aprova apenas nos
+      checkpoints definidos (deploy em produção, gastos acima do threshold).
+    entregaveis_chave:
+      - "Meta-Orchestrator com decomposição e execução paralela"
+      - "AttnRes Memory — memória seletiva por agente"
+      - "9 agentes especializados (DEV + OPS + BIZ)"
+      - "Pipeline CI/CD autônomo (staging autônomo, produção com aprovação)"
+      - "Dashboard de controle humano"
+      - "API e CLI de entrada de tarefas"
+      - "COMPANY.md como fonte única de verdade estratégica"
+    criterio_conclusao: >
+      A plataforma constrói um produto SaaS funcional do zero a partir de
+      um briefing em linguagem natural, com aprovação humana apenas no
+      deploy final de produção.
 
-### Backend & Dados
-- **Banco de dados**: Supabase (PostgreSQL + pgvector)
-- **Autenticação**: Supabase Auth
-- **Storage**: Supabase Storage (assets de mídia)
-- **Row Level Security**: obrigatório em todas as tabelas
-
-### Frontend & Deploy
-- **Framework**: React (dentro do Figma plugin SDK)
-- **Deploy web**: Vercel (edge functions + static hosting)
-- **CDN**: Vercel Edge Network
-
-### CI/CD & Infra
-- **CI/CD**: GitHub Actions
-- **Monitoramento**: Structured JSON logging
-- **Secrets**: variáveis de ambiente (nunca hardcoded)
-
-### IA & Agentes
-- **LLM principal**: Claude (Anthropic) via API
-- **Memória**: AttnRes (Attention Reservoir) — sistema próprio de memória em camadas
-- **Orquestração**: Multi-agent orchestrator com threshold humano
-
----
-
-## Architecture Decision Records (ADRs)
-
-### ADR-001: Monorepo com pnpm workspaces
-
-**Status**: Aceito
-**Contexto**: Com múltiplos produtos SaaS e bibliotecas compartilhadas, precisamos de
-uma estrutura que permita reutilização de código sem overhead de publicação de pacotes.
-**Decisão**: Monorepo com pnpm workspaces. Estrutura:
-- `packages/` — libs compartilhadas (`@factory/*`)
-- `agents/` — specs e lógica dos agentes
-- `apps/` — produtos SaaS (cada um com CLAUDE.md próprio)
-- `infra/` — GitHub Actions, Docker, configurações de infra
-- `config/` — configurações base (tsconfig, eslint, templates)
-- `scripts/` — scripts utilitários da factory
-
-**Consequências**: Builds mais rápidos com cache; lei de importação rigorosa
-(`apps/` e `agents/` importam de `packages/`, nunca entre si).
-
-### ADR-002: AttnRes Memory — Sistema de memória em camadas
-
-**Status**: Aceito
-**Contexto**: Agentes de IA perdem contexto entre sessões. Precisamos de memória
-persistente que priorize informações por relevância e importância.
-**Decisão**: AttnRes (Attention Reservoir) com três camadas:
-- **Foundational**: verdades permanentes (COMPANY.md, CLAUDE.md, SOUL.md)
-- **Relevant**: decisões e padrões do projeto atual
-- **Recent**: contexto da sessão corrente
-
-Armazenamento em Supabase com pgvector para busca semântica.
-Cada bloco de memória tem: `content`, `importance` (0-1), `block_type`, `metadata`.
-
-**Consequências**: Agentes mantêm coerência entre sessões; custo de storage proporcional
-à quantidade de memórias (controlável via TTL e importance threshold).
-
-### ADR-003: Multi-agent orchestration com threshold humano
-
-**Status**: Aceito
-**Contexto**: Um único agente generalista não consegue manter qualidade em todas as
-tarefas. Precisamos de especialização com coordenação.
-**Decisão**: Orquestrador central que delega para agentes especializados:
-- **Architect**: decisões de design e arquitetura
-- **Developer**: implementação de código
-- **Reviewer**: code review e qualidade
-- **DevOps**: CI/CD, deploy, monitoramento
-- **Product**: requisitos, priorização, métricas
-
-Threshold humano obrigatório para:
-- Deploy em produção com usuários reais
-- Gastos acima de R$ 500/mês
-- Mudanças em segurança ou dados pessoais
-- Contratos com terceiros
-
-**Consequências**: Agentes operam autonomamente dentro de limites seguros; fundador
-foca em estratégia e decisões de alto impacto.
-
-### ADR-004: Bootstrap com free tiers primeiro
-
-**Status**: Aceito
-**Contexto**: Como solo founder sem investimento externo, cada centavo conta.
-**Decisão**: Sempre começar com free tiers dos serviços. Escalar para planos pagos
-apenas quando limites forem atingidos com receita para cobrir.
-- Supabase Free Tier (500 MB database, 1 GB storage)
-- Vercel Hobby (100 GB bandwidth)
-- GitHub Free (unlimited repos, 2000 min/mês Actions)
-
-**Consequências**: Custo operacional inicial perto de zero; necessidade de otimizar
-uso de recursos desde o dia um.
+  fase_2:
+    nome: "Agentic Business Engineering"
+    status: "futura — planejada"
+    descricao: >
+      A plataforma evolui de construir software para operar negócios completos:
+      valida ideias com usuários reais, define pricing, lança, monitora
+      métricas de negócio, ajusta estratégia e gerencia o ciclo de vida
+      completo de um produto — com intervenção humana mínima.
+    prerequisito: >
+      Fase 1 validada com pelo menos 1 produto externo construído e operado
+      pela plataforma com sucesso por 90 dias consecutivos.
+    capacidades_adicionais:
+      - "Agente de validação de mercado (entrevistas, análise de concorrentes)"
+      - "Agente de growth (SEO, conteúdo, paid media automatizado)"
+      - "Agente financeiro (projeções, unit economics, alertas de runway)"
+      - "Agente de produto (priorização de backlog por dados de uso)"
+```
 
 ---
 
-## Restrições Financeiras
+## 3. O QUE O FACTORIFY PRODUZ
 
-- **Modelo**: Bootstrap — zero investimento externo
-- **Regra de ouro**: nunca gastar mais do que a receita recorrente mensal (MRR)
-- **Free tiers primeiro**: só escalar quando limites forem atingidos
-- **Orçamento mensal máximo (pré-receita)**: R$ 200 para infraestrutura
-- **Aprovação humana obrigatória**: qualquer gasto acima de R$ 500/mês
+```yaml
+output_da_plataforma:
+  nota: >
+    O Factorify produz outros produtos — ele não É um produto.
+    Os itens abaixo são exemplos de outputs futuros da plataforma,
+    não escopo do projeto Factorify em si.
 
-### Prioridades de investimento (quando houver receita)
-1. Infraestrutura (manter SLA para clientes pagantes)
-2. APIs de IA (Claude, embeddings)
-3. Ferramentas de desenvolvimento (GitHub Copilot, domínios)
-4. Marketing e aquisição
+  exemplos_futuros:
+    - nome: "UnifyStudio"
+      descricao: "Plugin Figma AdTech — desdobramento de KV para mídia paga"
+      status: "será construído pela plataforma quando Fase 1 estiver pronta"
 
----
+    - nome: "LiteClaw"
+      descricao: "Agente de IA local-first, multi-LLM, multi-canal"
+      status: "será construído pela plataforma quando Fase 1 estiver pronta"
 
-## Valores e Princípios Operacionais
+    - nome: "[produto-N]"
+      descricao: "Qualquer produto SaaS com dor validada + ticket >= R$300/mês"
+      status: "pipeline — critérios de entrada definidos na Fase 2"
 
-### Precisão acima de velocidade
-Um resultado correto vale mais que dez rascunhos. Cada entrega deve estar completa
-e pronta para uso — nunca fragmentada ou parcial.
-
-### Transparência total
-Toda decisão tem raciocínio documentado. Agentes explicam o "porquê", não apenas o "o quê".
-Erros são registrados como memórias foundational para aprendizado futuro.
-
-### Qualidade sobre quantidade
-Menos features, melhor executadas. O primeiro produto precisa ser excelente antes
-de pensar no segundo.
-
-### Economia inteligente
-Otimizar custos não significa cortar qualidade. Significa usar recursos com sabedoria:
-free tiers, caching agressivo, batch processing quando possível.
-
-### Autonomia com guardrails
-Agentes têm liberdade para decidir e agir dentro de limites claros. Quando o limite
-é atingido, escalam para o humano sem hesitação.
+  criterios_entrada_produto:
+    - "Dor validada com 10+ potenciais clientes antes de uma linha de código"
+    - "Ticket médio mínimo R$ 300/mês"
+    - "Construível com o core tecnológico existente da plataforma"
+    - "Mercado endereçável mínimo de 10.000 empresas no Brasil"
+```
 
 ---
 
-## Roadmap de Alto Nível
+## 4. CONTEXTO DO FUNDADOR
 
-### Fase 1 — Fundação (atual)
-- [x] Monorepo configurado com pnpm workspaces
-- [x] CLAUDE.md, SOUL.md e COMPANY.md definidos
-- [x] Sistema AttnRes memory implementado
-- [x] Orquestrador multi-agente funcional
-- [ ] Pipeline CI/CD com GitHub Actions
-- [ ] Supabase configurado com schema inicial
-
-### Fase 2 — MVP UnifyStudio
-- [ ] Figma plugin skeleton funcional
-- [ ] Engine de adaptação de formatos (core)
-- [ ] Integração com Supabase para persistência
-- [ ] Sistema de autenticação e billing
-- [ ] Beta fechado com 10 agências brasileiras
-
-### Fase 3 — Launch & Growth
-- [ ] Launch público no Figma Community
-- [ ] Onboarding automatizado
-- [ ] Dashboard de métricas para agências
-- [ ] Iteração baseada em feedback real
-
-### Fase 4 — Expansão
-- [ ] Segundo produto SaaS (a definir com base em dados)
-- [ ] API pública para integrações
-- [ ] Expansão para LATAM (espanhol)
+```yaml
+fundador:
+  nome:     "Marcelo Lermen"
+  papel:    "Arquiteto do sistema e decisor final nos checkpoints humanos"
+  contexto:
+    - "Superintendente de TI e Infraestrutura em cooperativa financeira (BACEN/FEBRABAN)"
+    - "Sócio de agência de publicidade em São Paulo"
+    - "Background em operações e gestão — não desenvolvedor"
+  preferencias_de_entrega:
+    - "Arquivos sempre completos e prontos para uso — nunca fragmentados"
+    - "Execuções sempre pelo Claude Code (CC) — humano só o que CC não alcança"
+    - "Intros e encerramentos em português; código em inglês"
+    - "Autonomia máxima dos agentes com checkpoints humanos mínimos"
+  aprovacao_requerida_para:
+    - "Deploy em produção com usuários reais"
+    - "Gastos de infra acima de R$ 500/mês"
+    - "Contratos ou compromissos com terceiros"
+    - "Mudanças na arquitetura de segurança ou dados pessoais"
+    - "Mudanças neste COMPANY.md"
+```
 
 ---
 
-## Contato
+## 5. ARQUITETURA DA PLATAFORMA
 
-- **Fundador**: Marcelo Lermen
-- **Repositório**: github.com/mlermen/factorify (privado)
-- **Produto**: UnifyStudio (em desenvolvimento)
+```yaml
+stack_global:
+  linguagens:   ["TypeScript (strict)", "Python 3.11+"]
+  runtime:      ["Node.js 22"]
+  banco:        ["Supabase (Postgres + pgvector)"]
+  deploy:       ["Vercel (frontend + edge)", "Railway (backends Python)"]
+  versionamento: "GitHub (marckrs/factorify)"
+  local:        "/Users/mlermen/Documents/GitHub/factorify"
+  mcp_ativos:   ["Supabase", "GitHub", "Vercel", "Notion", "Stripe", "Gmail"]
+
+monorepo:
+  gerenciador: "pnpm workspaces"
+  camadas:
+    packages/: "Libs compartilhadas da plataforma (@factory/*)"
+    agents/:   "Specs e lógica dos agentes especializados"
+    apps/:     "Aplicações da própria plataforma (dashboard, api, cli)"
+    infra/:    "GitHub Actions, Docker, configurações de infra"
+    config/:   "Configurações base (tsconfig, eslint, templates)"
+  lei_de_importacao: "apps/ e agents/ importam de packages/ — nunca entre si"
+
+packages_atuais:
+  - "@factory/attnres-memory"   # concluído — 15 testes passando
+  - "@factory/orchestrator"      # concluído — 23 testes passando
+  - "@factory/shared-types"      # concluído
+  - "@factory/mcp-servers"       # a criar — wrappers typed para MCPs
+  - "@factory/ui-primitives"     # a criar — componentes React base
+
+apps_da_plataforma:
+  - "apps/dashboard"  # painel de controle humano
+  - "apps/api"        # endpoint de entrada de tarefas
+  - "apps/cli"        # interface de linha de comando
+```
+
+---
+
+## 6. AGENTES DA PLATAFORMA
+
+```yaml
+agentes:
+  cluster_dev:
+    - id: code
+      papel: "Escreve, refatora e corrige código TypeScript/Python"
+      spec: "agents/dev/code/spec.md"
+      status: "spec criado"
+    - id: test
+      papel: "Escreve testes automatizados e analisa cobertura"
+      spec: "agents/dev/test/spec.md"
+      status: "spec a criar"
+    - id: review
+      papel: "Revisa código: segurança, performance, arquitetura"
+      spec: "agents/dev/review/spec.md"
+      status: "spec a criar"
+
+  cluster_ops:
+    - id: deploy
+      papel: "Executa deploys seguros via Vercel MCP"
+      spec: "agents/ops/deploy/spec.md"
+      status: "spec criado"
+    - id: monitor
+      papel: "Monitora saúde da plataforma e detecta anomalias"
+      spec: "agents/ops/monitor/spec.md"
+      status: "spec a criar"
+    - id: incident
+      papel: "Diagnostica e remedia incidentes de produção"
+      spec: "agents/ops/incident/spec.md"
+      status: "spec a criar"
+
+  cluster_biz:
+    - id: gtm
+      papel: "Define estratégia go-to-market dos produtos da plataforma"
+      spec: "agents/biz/gtm/spec.md"
+      status: "spec criado"
+    - id: analytics
+      papel: "Analisa métricas da plataforma e dos produtos gerados"
+      spec: "agents/biz/analytics/spec.md"
+      status: "spec a criar"
+    - id: support
+      papel: "Atende usuários dos produtos gerados pela plataforma"
+      spec: "agents/biz/support/spec.md"
+      status: "spec a criar"
+
+  orquestrador:
+    - id: orchestrator
+      papel: "Decompõe tasks, roteia agentes, sintetiza resultados"
+      spec: "agents/orchestrator/spec.md"
+      status: "spec criado | código criado"
+```
+
+---
+
+## 7. DECISÕES ARQUITETURAIS (ADRs)
+
+```yaml
+adrs:
+  - id: ADR-001
+    titulo: "AttnRes como camada de memória dos agentes"
+    data: "2026-03-18"
+    status: "aceito"
+    decisao: >
+      Adotar AttnRes Block Memory (inspirado no paper Moonshot AI, março 2026)
+      como mecanismo central de memória. Cada agente tem um pseudo-query vetor
+      que direciona atenção para blocos recent/relevant/foundational.
+
+  - id: ADR-002
+    titulo: "Monorepo pnpm com 5 camadas"
+    data: "2026-03-18"
+    status: "aceito"
+    decisao: >
+      packages/ | agents/ | apps/ | infra/ | config/
+      Lei de importação única: apps/ e agents/ importam de packages/.
+
+  - id: ADR-003
+    titulo: "Aprovação humana para deploy em produção"
+    data: "2026-03-18"
+    status: "aceito"
+    decisao: >
+      Staging: autônomo. Produção: sempre requer confirmação explícita
+      do fundador. Janela de deploy: sextas 14h–17h (exceto hotfixes).
+
+  - id: ADR-004
+    titulo: "COMPANY.md como fonte única de verdade estratégica"
+    data: "2026-03-18"
+    status: "aceito"
+    decisao: >
+      Todo contexto estratégico vive aqui. Sync automático indexa no AttnRes
+      como memórias foundational (importance 0.90–1.00).
+
+  - id: ADR-005
+    titulo: "CC executa tudo — humano apenas o que CC não alcança"
+    data: "2026-03-19"
+    status: "aceito"
+    decisao: >
+      Claude Code (CC) executa todas as operações técnicas. O fundador
+      executa manualmente apenas: login em interfaces web, autorizações
+      OAuth, aprovações de deploy em produção e inputs de dados sensíveis.
+
+  - id: ADR-006
+    titulo: "Escopo do Factorify é a plataforma, não os produtos"
+    data: "2026-03-19"
+    status: "aceito"
+    decisao: >
+      Factorify = plataforma autônoma de engenharia. Os produtos SaaS
+      (UnifyStudio, LiteClaw, etc.) são outputs futuros da plataforma —
+      não são escopo do repositório factorify.
+```
+
+---
+
+## 8. OKRs DA PLATAFORMA
+
+```yaml
+horizonte: "Q1-Q2 2026"
+
+okrs:
+  - objetivo: "Completar a Fase 1 — Agentic Software Engineering"
+    prazo: "2026-05-31"
+    key_results:
+      - kr: "9 agentes com specs e código completos"
+        status: "em andamento (4/9 specs, 2/9 código)"
+        responsavel: "orchestrator + code"
+      - kr: "Pipeline CI/CD autônomo end-to-end funcionando"
+        status: "parcial (staging pendente, produção pendente)"
+        responsavel: "deploy"
+      - kr: "Dashboard de controle operacional"
+        status: "scaffold criado, implementação pendente"
+        responsavel: "code"
+      - kr: "API e CLI de entrada de tarefas"
+        status: "scaffold criado, implementação pendente"
+        responsavel: "code"
+      - kr: "COMPANY.md sincronizado e sendo consultado pelos agentes"
+        status: "concluído — 30 seções indexadas no AttnRes"
+        responsavel: "code"
+
+  - objetivo: "Validar a plataforma construindo o primeiro produto externo"
+    prazo: "2026-08-31"
+    key_results:
+      - kr: "Primeiro produto SaaS completo gerado pela plataforma"
+        status: "aguarda conclusão da Fase 1"
+        responsavel: "orchestrator"
+      - kr: "Tempo de geração < 2 semanas do briefing ao MVP"
+        status: "aguarda Fase 1"
+        responsavel: "orchestrator"
+      - kr: "Intervenção humana < 4h/semana durante operação"
+        status: "aguarda Fase 1"
+        responsavel: "monitor"
+```
+
+---
+
+## 9. COMPLIANCE E SEGURANÇA
+
+```yaml
+regras_absolutas:
+  - "TypeScript strict mode em TODOS os arquivos — sem any implícito"
+  - "Secrets SEMPRE via variáveis de ambiente — nunca hardcoded"
+  - "RLS ativo em TODAS as tabelas Supabase"
+  - "Toda chamada de banco via Supabase MCP — nunca SQL direto no código"
+  - "Logs estruturados (JSON) — nunca console.log em produção"
+  - "Testes obrigatórios para código que vai a produção (min 80% cobertura)"
+  - "Funções sempre versionadas (V2, V3) — nunca sobrescrever versão estável"
+
+contexto_regulatorio:
+  nota: >
+    O fundador opera em ambiente regulado (BACEN/FEBRABAN).
+    A plataforma Factorify em si não é um produto financeiro, mas deve
+    seguir padrões de segurança equivalentes ao bancário:
+    auditoria total, logs imutáveis, zero dados sensíveis em código.
+```
+
+---
+
+## 10. INSTRUÇÃO DE USO PARA AGENTES
+
+```yaml
+antes_de_qualquer_acao:
+  - "Consulte sua memória AttnRes — este documento está indexado como foundational"
+  - "Verifique se a ação contradiz algum ADR desta constituição"
+  - "Em dúvida entre velocidade e segurança: priorize segurança"
+
+ao_tomar_decisoes_tecnicas:
+  - "Prefira padrões dos ADRs antes de introduzir novidades"
+  - "Novas dependências requerem justificativa documentada"
+  - "O escopo do factorify é a plataforma — não desenvolva produtos SaaS aqui"
+
+escalacao_obrigatoria:
+  - "Deploy em produção → aguardar aprovação do fundador"
+  - "Gastos de infra acima de R$ 500/mês → escalar"
+  - "Incidentes críticos em produção → notificar imediatamente"
+  - "Mudanças neste COMPANY.md → aprovação do fundador"
+
+threshold_autonomia:
+  deploy_staging:      "autônomo"
+  deploy_producao:     "aprovação humana obrigatória"
+  infra_ate_500_mes:   "autônomo"
+  infra_acima_500:     "escalar para fundador"
+  mudancas_company_md: "aprovação do fundador"
+
+changelog:
+  - data: "2026-03-18"
+    versao: "1.0.0"
+    mudancas: "Criação inicial"
+  - data: "2026-03-19"
+    versao: "2.0.0"
+    autor: "Marcelo Lermen"
+    mudancas: >
+      Revisão completa de escopo. Removido portfólio de produtos (UnifyStudio,
+      LiteClaw) do escopo do Factorify. Adicionados ADR-005 e ADR-006.
+      Factorify redefinido como plataforma autônoma de engenharia —
+      os produtos são outputs futuros, não escopo do projeto.
+```

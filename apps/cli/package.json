@@ -1,0 +1,11 @@
+{
+  "name": "@factory/cli",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Factorify — Interface de linha de comando para interagir com a plataforma",
+  "scripts": {
+    "dev": "echo 'placeholder'",
+    "build": "echo 'placeholder'",
+    "test": "echo 'placeholder'"
+  }
+}
