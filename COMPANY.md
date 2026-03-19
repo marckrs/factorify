@@ -575,4 +575,12 @@ changelog:
       Sprint 6: Cost-Aware Routing (ADR-013), Self-Critique (ADR-014),
       Uncertainty Score, FinOps Alerts, Checkpointing (ADR-009 implementado),
       Protocolo A2A (ADR-010 implementado). Total: 14 ADRs.
+  - data: "2026-03-19"
+    versao: "3.0.0"
+    autor: "Marcelo Lermen"
+    mudancas: >
+      MARCO: Fase 1 concluida. Sprint 8 — tool-use real (agentes commitam
+      codigo no GitHub), deploy Vercel (API + Dashboard), Vercel configs.
+      CodePostProcessor com validacao de paths e dual-strategy parsing.
+      Plataforma opera de forma independente em producao.
 ```

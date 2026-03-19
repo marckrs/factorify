@@ -223,6 +223,48 @@ export async function executeTask(params: {
       void analyzeLearnings(subtaskResults, subtaskMap, task, task_id, priority)
     })
 
+    // Phase 4: CodePostProcessor — commit code agent output to GitHub
+    const codeResult = subtaskResults.find(
+      r => r.status === 'completed' && (r.output?.includes('"files"') ?? false)
+    )
+
+    if (codeResult?.output && process.env.GITHUB_TOKEN) {
+      setImmediate(async () => {
+        try {
+          const { CodePostProcessor } = await import('@factory/mcp-servers')
+          const { GitHubMCP } = await import('@factory/mcp-servers')
+
+          const github = new GitHubMCP({
+            owner: 'marckrs', repo: 'factorify',
+            token: process.env.GITHUB_TOKEN!,
+          })
+
+          const processor = new CodePostProcessor(github)
+          const committed = await processor.process(codeResult.output!, task_id)
+
+          if (committed.committed) {
+            console.log(JSON.stringify({
+              level: 'info', event: 'code_committed',
+              sha: committed.sha, files: committed.files.map(f => f.path), task_id,
+            }))
+            await supabase.from('factory_tasks').update({
+              metadata: { commit_sha: committed.sha, files_created: committed.files.map(f => f.path) },
+            }).eq('id', task_id)
+          } else {
+            console.log(JSON.stringify({
+              level: 'warn', event: 'code_not_committed',
+              files_parsed: committed.files.length, task_id,
+            }))
+          }
+        } catch (err) {
+          console.error(JSON.stringify({
+            level: 'error', event: 'code_post_process_failed',
+            error: (err as Error).message, task_id,
+          }))
+        }
+      })
+    }
+
   } catch (err) {
     const message = (err as Error).message
     console.error(JSON.stringify({
