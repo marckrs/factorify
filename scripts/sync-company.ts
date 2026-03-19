@@ -11,9 +11,12 @@
  *   SUPABASE_SERVICE_KEY  — Supabase service role key (not anon key)
  */
 
+import { config } from "dotenv";
 import { readFile } from "node:fs/promises";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+
+config();
 
 // ---------------------------------------------------------------------------
 // Types
@@ -58,7 +61,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const PROJECT_ROOT = resolve(__dirname, "..");
 const COMPANY_MD_PATH = resolve(PROJECT_ROOT, "COMPANY.md");
-const ATTNRES_TABLE = "attnres_memory_blocks";
+const ATTNRES_TABLE = "attnres_memories";
 const VERSION = "1.0.0";
 
 /** Importance weights by section depth — top-level sections carry more weight */
