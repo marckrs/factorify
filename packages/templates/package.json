@@ -1,0 +1,15 @@
+{
+  "name": "@factory/templates",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Factorify — Production-ready screen templates for reuse across SaaS products",
+  "main": "./src/index.ts",
+  "scripts": {
+    "test": "tsx tests/registry.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}

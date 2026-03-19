@@ -402,6 +402,26 @@ adrs:
       Agentes melhoram progressivamente com cada execucao.
       O Factorify acumula conhecimento operacional que nao se perde
       entre sessions ou reinicializacoes.
+
+  - id: ADR-012
+    titulo: "Template Registry para reutilizacao entre produtos SaaS"
+    data: "2026-03-19"
+    status: "aceito — scaffold Sprint atual | templates reais Fase 2"
+    contexto: >
+      Sem um sistema de reutilizacao, o code agent reconstroi as mesmas
+      telas do zero em cada produto: login, dashboard, pricing, onboarding.
+      Com N produtos, o custo cresce linearmente. Com templates, cresce
+      logaritmicamente.
+    decisao: >
+      Criar e manter @factory/templates — catalogo vivo de telas e
+      componentes producao-prontos. O code agent DEVE consultar o registry
+      antes de implementar qualquer tela. Templates com status
+      'production-ready' tem prioridade maxima de reutilizacao.
+    instrucao_code_agent: >
+      Antes de implementar qualquer tela: findTemplates({ search: '...' }).
+      Se 'production-ready': use como base. Se vazio: implemente e registre.
+      Sempre: incrementReuse(id, productName) ao reutilizar.
+    implementacao: "packages/templates/src/registry.ts"
 ```
 
 ---
@@ -521,4 +541,10 @@ changelog:
     mudancas: >
       ADR-011: Learning Layer (Reflexion + AttnRes feedback loop).
       Agentes agora aprendem com erros e acumulam conhecimento operacional.
+  - data: "2026-03-19"
+    versao: "2.3.0"
+    autor: "Marcelo Lermen + Claude"
+    mudancas: >
+      ADR-012: Template Registry (@factory/templates). 5 templates scaffold.
+      Code agent deve consultar registry antes de implementar qualquer tela.
 ```
