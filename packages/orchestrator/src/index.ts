@@ -34,3 +34,7 @@ export type { CheckpointData } from "./execution/checkpoint-manager.js";
 // Cost-Aware Routing
 export { routeToModel, estimateMonthlySavings } from "./core/model-router.js";
 export type { ModelTier, RoutingDecision } from "./core/model-router.js";
+
+// A2A Protocol
+export { A2AChannel } from "./a2a/protocol.js";
+export type { A2AMessage, MessageType } from "./a2a/protocol.js";
