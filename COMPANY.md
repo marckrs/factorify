@@ -278,6 +278,18 @@ adrs:
       Factorify = plataforma autônoma de engenharia. Os produtos SaaS
       (UnifyStudio, LiteClaw, etc.) são outputs futuros da plataforma —
       não são escopo do repositório factorify.
+
+  - id: ADR-007
+    titulo: "Prompt Caching em todos os agentes"
+    data: "2026-03-19"
+    status: "aceito"
+    decisao: >
+      Todos os blocos estáticos de system prompt (base do agente,
+      contexto do COMPANY.md via AttnRes) devem usar cache_control
+      ephemeral na API Anthropic. Blocos dinâmicos (user message,
+      contexto de sessão) nunca devem ser cacheados.
+    impacto: "Redução estimada de 70-80% no custo de tokens dos agentes"
+    implementacao: "apps/api/src/llm-runner.ts"
 ```
 
 ---
@@ -383,4 +395,10 @@ changelog:
       LiteClaw) do escopo do Factorify. Adicionados ADR-005 e ADR-006.
       Factorify redefinido como plataforma autônoma de engenharia —
       os produtos são outputs futuros, não escopo do projeto.
+  - data: "2026-03-19"
+    versao: "2.1.0"
+    autor: "Claude Code"
+    mudancas: >
+      Sprint 2 completo. API conectada ao MetaOrchestrator com LLM real.
+      Primeira task executada end-to-end. ADR-007 prompt caching.
 ```

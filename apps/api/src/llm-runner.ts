@@ -94,10 +94,20 @@ export class LlmAgentRunner {
         `If reviewing, include verdict and detailed issue list.`,
       ].join('\n')
 
+      // Use cache_control on static system prompt blocks (ADR-007)
+      // Cache hits cost 10% of normal input price — ~77% savings per task
+      const systemBlocks: Anthropic.Messages.TextBlockParam[] = [
+        {
+          type:          'text',
+          text:          systemPrompt,
+          cache_control: { type: 'ephemeral' },
+        },
+      ]
+
       const response = await this.client.messages.create({
         model:      this.model,
         max_tokens: 4096,
-        system:     systemPrompt,
+        system:     systemBlocks,
         messages:   [{ role: 'user', content: userMessage }],
       })
 
@@ -107,6 +117,23 @@ export class LlmAgentRunner {
         .join('\n')
 
       const duration_ms = Math.round(performance.now() - startTime)
+
+      // Extract cache metrics from usage
+      const usage = response.usage as Record<string, number>
+      const cacheWrite = usage.cache_creation_input_tokens ?? 0
+      const cacheRead  = usage.cache_read_input_tokens ?? 0
+
+      console.log(JSON.stringify({
+        level:       'info',
+        event:       'llm_call',
+        agent:       agent.name,
+        subtask_id:  subtask.id,
+        input_tokens:  usage.input_tokens,
+        output_tokens: usage.output_tokens,
+        cache_write: cacheWrite,
+        cache_read:  cacheRead,
+        duration_ms,
+      }))
 
       return {
         task_id:     subtask.id,
