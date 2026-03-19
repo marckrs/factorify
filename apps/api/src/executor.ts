@@ -223,10 +223,16 @@ export async function executeTask(params: {
       void analyzeLearnings(subtaskResults, subtaskMap, task, task_id, priority)
     })
 
-    // Phase 4: CodePostProcessor — commit code agent output to GitHub
-    const codeResult = subtaskResults.find(
-      r => r.status === 'completed' && (r.output?.includes('"files"') ?? false)
-    )
+    // Phase 4: CodePostProcessor — try all completed subtask outputs
+    // The code agent should return JSON with files, but we try all outputs
+    // since the orchestrator assigns DEV type to code subtasks
+    const completedOutputs = subtaskResults
+      .filter(r => r.status === 'completed' && r.output)
+      .sort((a, b) => (b.output?.length ?? 0) - (a.output?.length ?? 0))  // longest first
+
+    const codeResult = completedOutputs.find(r =>
+      r.output?.includes('"files"') || r.output?.includes('"path"')
+    ) ?? completedOutputs[0]  // fallback to longest output
 
     if (codeResult?.output && process.env.GITHUB_TOKEN) {
       setImmediate(async () => {

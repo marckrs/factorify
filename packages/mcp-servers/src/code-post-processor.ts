@@ -85,6 +85,22 @@ export class CodePostProcessor {
       }
     } catch { /* give up */ }
 
+    // Strategy 3: extract code blocks with file paths from markdown
+    try {
+      const blocks: MCPFile[] = []
+      // Match ```typescript or ```ts blocks preceded by a file path comment
+      const codeBlockRegex = /(?:(?:\/\/|#)\s*(?:File:\s*)?([^\n]+\.(?:ts|tsx|js|json|sql|md))\n|```(?:typescript|ts|javascript|js)\n)([^`]+)```/g
+      let match
+      while ((match = codeBlockRegex.exec(raw)) !== null) {
+        if (match[1] && match[2] && match[2].length > 20) {
+          blocks.push({ path: match[1].trim(), content: match[2].trim() })
+        }
+      }
+      if (blocks.length > 0) {
+        return { summary: 'Extracted from code blocks', files: blocks, tests_command: '', notes: '' }
+      }
+    } catch { /* give up */ }
+
     return null
   }
 
