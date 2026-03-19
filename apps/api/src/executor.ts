@@ -170,15 +170,30 @@ export async function executeTask(params: {
       cache_read:      tokenTotals.cache_read,
     }))
 
-    // Store result
+    // Uncertainty Score (framework #13)
+    const subtaskResults = [...result.results.values()]
+    const confidence = calculateConfidence(subtaskResults, totalDuration)
+    const REVIEW_THRESHOLD = 0.70
+
+    console.log(JSON.stringify({
+      level: 'info', event: 'confidence_scored', task_id,
+      confidence: confidence.score, factors: confidence.factors,
+      requires_review: confidence.score < REVIEW_THRESHOLD,
+    }))
+
+    // Store result with confidence metadata
     await updateTask(task_id, {
       status:      result.success ? 'completed' : 'failed',
       result:      result.summary,
       duration_ms: totalDuration,
+      metadata:    {
+        confidence_score:   confidence.score,
+        confidence_factors: confidence.factors,
+        requires_review:    confidence.score < REVIEW_THRESHOLD,
+      },
     })
 
     // Log to agents_log with real token data
-    const subtaskResults = [...result.results.values()]
     await supabase.from('agents_log').insert({
       agent_type:         'orchestrator',
       task_preview:       task.slice(0, 100),
@@ -289,4 +304,40 @@ async function analyzeLearnings(
       // LearningLayer never crashes the pipeline
     }
   }
+}
+
+// ── Confidence scoring (framework #13) ────────────────────────
+function calculateConfidence(
+  results:   Array<{ task_id: string; status: string; output?: string; error?: string; duration_ms: number }>,
+  totalMs:   number,
+): { score: number; factors: string[] } {
+  const factors: string[] = []
+  let score = 1.0
+
+  const successRate = results.filter(r => r.status === 'completed').length / (results.length || 1)
+  if (successRate < 1.0) {
+    score -= (1 - successRate) * 0.4
+    factors.push(`${Math.round((1 - successRate) * 100)}% subtasks failed`)
+  }
+
+  if (totalMs > 180_000) {
+    score -= 0.1
+    factors.push('High total duration (>3min)')
+  }
+
+  if (results.length < 2) {
+    score -= 0.1
+    factors.push('Only 1 subtask — may be under-decomposed')
+  }
+
+  const hasError = results.some(r => r.error)
+  if (hasError) {
+    score -= 0.15
+    factors.push('At least one subtask had an error')
+  }
+
+  score = Math.max(0, Math.min(1, score))
+  if (factors.length === 0) factors.push('All checks passed')
+
+  return { score: Math.round(score * 100) / 100, factors }
 }
