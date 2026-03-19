@@ -1,0 +1,15 @@
+{
+  "name": "@factory/orchestrator",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "test": "tsx tests/orchestrator.test.ts",
+    "demo": "tsx examples/demo.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}

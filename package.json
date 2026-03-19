@@ -1,0 +1,29 @@
+{
+  "name": "factorify",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Autonomous SaaS Factory — Marcelo Lermen",
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r exec tsc --noEmit",
+    "sync:company": "npx tsx scripts/sync-company.ts",
+    "agent:memory:demo": "pnpm --filter @factory/attnres-memory demo",
+    "agent:orchestrator:demo": "pnpm --filter @factory/orchestrator demo"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}

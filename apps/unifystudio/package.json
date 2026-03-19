@@ -1,0 +1,11 @@
+{
+  "name": "@factory/unifystudio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "UnifyStudio — Figma AdTech Plugin",
+  "scripts": {
+    "dev": "echo 'Dev server placeholder'",
+    "build": "echo 'Build placeholder'",
+    "test": "echo 'No tests yet'"
+  }
+}
