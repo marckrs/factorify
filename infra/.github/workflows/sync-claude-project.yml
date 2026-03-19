@@ -1,0 +1,50 @@
+name: Sync → Claude Projects Knowledge Base
+
+# DISABLED: claude.ai/api is behind Cloudflare challenge.
+# Server-side requests get blocked. Re-enable when Anthropic
+# releases an official Projects API.
+#
+# on:
+#   push:
+#     branches: [main]
+#     paths:
+#       - 'COMPANY.md'
+#       - 'CLAUDE.md'
+#       - 'agents/**/*.md'
+
+on:
+  workflow_dispatch:
+    inputs:
+      force_all:
+        description: 'Force sync all files (blocked by Cloudflare — experimental)'
+        type: boolean
+        default: false
+
+jobs:
+  sync:
+    name: Sync to Claude Projects
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Sync files to Claude Projects
+        run: node scripts/sync-to-claude-project.mjs
+        env:
+          CLAUDE_SESSION_KEY: ${{ secrets.CLAUDE_SESSION_KEY }}
+          CLAUDE_PROJECT_ID:  ${{ secrets.CLAUDE_PROJECT_ID }}
+
+      - name: Log sync result
+        if: always()
+        run: |
+          echo "## Claude Projects Sync" >> $GITHUB_STEP_SUMMARY
+          echo "- **Trigger:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** Experimental — may fail due to Cloudflare" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
