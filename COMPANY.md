@@ -319,7 +319,7 @@ adrs:
   - id: ADR-009
     titulo: "Checkpointing de execução via estado persistente (LangGraph-inspired)"
     data: "2026-03-19"
-    status: "candidato — Sprint 6"
+    status: "implementado — Sprint 6"
     contexto: >
       O ParallelExecutor atual executa waves de tasks sem persistência
       de estado intermediário. Se a API cair no meio de uma task de 8h
@@ -344,7 +344,7 @@ adrs:
   - id: ADR-010
     titulo: "Protocolo A2A (Agent-to-Agent) para comunicação entre agentes"
     data: "2026-03-19"
-    status: "candidato — Sprint 6"
+    status: "implementado — Sprint 6"
     contexto: >
       Hoje agentes se comunicam via o orquestrador como intermediário:
       o code agent nunca fala diretamente com o test agent — o orquestrador
@@ -422,6 +422,27 @@ adrs:
       Se 'production-ready': use como base. Se vazio: implemente e registre.
       Sempre: incrementReuse(id, productName) ao reutilizar.
     implementacao: "packages/templates/src/registry.ts"
+
+  - id: ADR-013
+    titulo: "Cost-Aware Routing — modelo dinamico por complexidade de task"
+    data: "2026-03-19"
+    status: "implementado — Sprint 6"
+    decisao: >
+      Tasks simples usam claude-haiku-4-5 ($1/MTok). Tasks complexas
+      usam claude-sonnet-4-6 ($3/MTok). Sinais da task description
+      podem sobrescrever o default do agente. Critical priority: Sonnet.
+    impacto: "50-60% de reducao adicional sobre Prompt Caching"
+    implementacao: "packages/orchestrator/src/core/model-router.ts"
+
+  - id: ADR-014
+    titulo: "Agent Self-Critique antes de submeter output"
+    data: "2026-03-19"
+    status: "implementado — Sprint 6"
+    decisao: >
+      Agentes code, test e review revisam proprio output antes de submeter.
+      Revisao usa Haiku (~$0.001). Se score < 7/10, usa output revisado.
+      Nunca bloqueia — fail-open.
+    implementacao: "apps/api/src/llm-runner.ts"
 ```
 
 ---
@@ -547,4 +568,11 @@ changelog:
     mudancas: >
       ADR-012: Template Registry (@factory/templates). 5 templates scaffold.
       Code agent deve consultar registry antes de implementar qualquer tela.
+  - data: "2026-03-19"
+    versao: "2.4.0"
+    autor: "Marcelo Lermen + Claude"
+    mudancas: >
+      Sprint 6: Cost-Aware Routing (ADR-013), Self-Critique (ADR-014),
+      Uncertainty Score, FinOps Alerts, Checkpointing (ADR-009 implementado),
+      Protocolo A2A (ADR-010 implementado). Total: 14 ADRs.
 ```
