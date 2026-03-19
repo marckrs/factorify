@@ -377,6 +377,31 @@ adrs:
       - "code agent + review agent: iteração até aprovação (máx 3 turnos)"
       - "monitor agent + incident agent: handoff de alerta com contexto completo"
       - "analytics agent + gtm agent: briefing de métricas para decisão de estratégia"
+
+  - id: ADR-011
+    titulo: "Reflexion + AttnRes como mecanismo de aprendizado continuo"
+    data: "2026-03-19"
+    status: "aceito — implementado Sprint 4"
+    contexto: >
+      Agentes repetiam os mesmos erros em execucoes sucessivas porque nao
+      havia mecanismo para persistir aprendizados entre sessions. O paper
+      Reflexion (Shinn et al., 2023) propoe reflexao verbal apos falhas,
+      mas sua limitacao e memoria de curto prazo. O AttnRes resolve isso.
+    decisao: >
+      Apos cada subtask, o LearningLayer analisa o resultado com Claude
+      e extrai aprendizados estruturados. Estes sao armazenados no AttnRes
+      como memorias relevant (importance 0.72-0.80) e promovidos para
+      foundational (0.92) apos 3 ocorrencias do mesmo padrao. O
+      ErrorPatternDetector cria um PR automatico no GitHub propondo
+      atualizacao no spec do agente ao atingir o threshold.
+    garantias:
+      - "LearningLayer nunca bloqueia o pipeline — fire-and-forget"
+      - "Erros da propria LearningLayer sao silenciados (nunca propagam)"
+      - "PR de spec update requer aprovacao humana antes de merge"
+    impacto: >
+      Agentes melhoram progressivamente com cada execucao.
+      O Factorify acumula conhecimento operacional que nao se perde
+      entre sessions ou reinicializacoes.
 ```
 
 ---
@@ -488,6 +513,12 @@ changelog:
     mudancas: >
       Sprint 2 completo. API conectada ao MetaOrchestrator com LLM real.
       Primeira task executada end-to-end. ADR-007 prompt caching.
-      Adicionados ADR-008 (audit log imutável), ADR-009 (checkpointing
-      de execução), ADR-010 (protocolo A2A entre agentes).
+      Adicionados ADR-008 (audit log imutavel), ADR-009 (checkpointing
+      de execucao), ADR-010 (protocolo A2A entre agentes).
+  - data: "2026-03-19"
+    versao: "2.2.0"
+    autor: "Marcelo Lermen + Claude"
+    mudancas: >
+      ADR-011: Learning Layer (Reflexion + AttnRes feedback loop).
+      Agentes agora aprendem com erros e acumulam conhecimento operacional.
 ```
