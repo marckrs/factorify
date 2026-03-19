@@ -1,6 +1,6 @@
 {
   "name": "@factory/api",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Factorify — API de entrada de tarefas para o orquestrador",
@@ -14,7 +14,10 @@
     "fastify": "^5.0.0",
     "@fastify/cors": "^10.0.0",
     "@fastify/helmet": "^13.0.0",
-    "@supabase/supabase-js": "^2.0.0"
+    "@supabase/supabase-js": "^2.0.0",
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@factory/attnres-memory": "workspace:*",
+    "@factory/orchestrator": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

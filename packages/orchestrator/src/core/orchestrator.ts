@@ -25,6 +25,7 @@ export interface OrchestratorOptions {
   readonly agents?: AgentSpec[];
   readonly simulatedLatencyMs?: number;
   readonly concurrencyLimit?: number;
+  readonly runner?: AgentRunner;
 }
 
 export class Orchestrator {
@@ -35,7 +36,7 @@ export class Orchestrator {
 
   constructor(options?: OrchestratorOptions) {
     this.decomposer = new TaskDecomposer();
-    this.runner = new AgentRunner({
+    this.runner = options?.runner ?? new AgentRunner({
       simulatedLatencyMs: options?.simulatedLatencyMs,
     });
     this.executor = new ParallelExecutor({
