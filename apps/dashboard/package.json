@@ -2,10 +2,13 @@
   "name": "@factory/dashboard",
   "version": "0.1.0",
   "private": true,
-  "description": "Factorify — Painel de controle da plataforma (status de agentes, OKRs, logs)",
+  "description": "Factorify — Control panel for the autonomous platform",
   "scripts": {
-    "dev": "echo 'placeholder'",
-    "build": "echo 'placeholder'",
-    "test": "echo 'placeholder'"
+    "dev":   "npx serve src -p 3002",
+    "build": "echo 'React build — Sprint 5'",
+    "test":  "echo 'No tests yet'"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.0.0"
   }
 }

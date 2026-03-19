@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Factorify — Control Panel</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f0f0e; color: #e8e6e0;
+      padding: 24px; min-height: 100vh;
+    }
+    .header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 32px; padding-bottom: 16px;
+      border-bottom: 0.5px solid #333;
+    }
+    .logo { font-size: 18px; font-weight: 500; }
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #1D9E75; display: inline-block; margin-right: 6px;
+    }
+    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 32px; }
+    .card {
+      background: #1a1a18; border: 0.5px solid #333;
+      border-radius: 10px; padding: 16px;
+    }
+    .card-label { font-size: 11px; color: #666; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .card-value { font-size: 28px; font-weight: 500; }
+    .card-sub   { font-size: 12px; color: #555; margin-top: 4px; }
+    .section-title { font-size: 13px; font-weight: 500; color: #888; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .task-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 14px; background: #1a1a18;
+      border: 0.5px solid #333; border-radius: 8px; margin-bottom: 6px;
+    }
+    .task-id   { font-size: 11px; color: #444; font-family: monospace; min-width: 70px; }
+    .task-text { font-size: 13px; flex: 1; }
+    .task-status { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 10px; }
+    .status-completed { background: #0a2a1a; color: #1D9E75; }
+    .status-running   { background: #2a2000; color: #BA7517; }
+    .status-failed    { background: #2a0a0a; color: #E24B4A; }
+    .status-queued    { background: #1a1a2a; color: #534AB7; }
+    .task-ms   { font-size: 11px; color: #444; min-width: 60px; text-align: right; }
+    #loading   { color: #444; font-size: 13px; }
+    .refresh   { font-size: 12px; color: #555; cursor: pointer; }
+    .refresh:hover { color: #888; }
+    @media (max-width: 768px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">
+      <span class="status-dot" id="api-dot"></span>
+      Factorify Control Panel
+    </div>
+    <span class="refresh" onclick="loadData()">Refresh</span>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-label">Tasks total</div>
+      <div class="card-value" id="total-tasks">-</div>
+      <div class="card-sub" id="tasks-today">loading...</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Success rate</div>
+      <div class="card-value" id="success-rate">-</div>
+      <div class="card-sub">all time</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Avg duration</div>
+      <div class="card-value" id="avg-duration">-</div>
+      <div class="card-sub">seconds per task</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Agents</div>
+      <div class="card-value">9</div>
+      <div class="card-sub">all specs complete</div>
+    </div>
+  </div>
+
+  <div class="section-title">Recent tasks</div>
+  <div id="tasks-list"><div id="loading">Loading...</div></div>
+
+  <script type="module">
+    const API = window.location.hostname === 'localhost'
+      ? 'http://localhost:3001'
+      : 'https://your-api.vercel.app'
+
+    let apiKey = localStorage.getItem('factorify_api_key')
+    if (!apiKey) {
+      apiKey = prompt('Factorify API Key:') || ''
+      if (apiKey) localStorage.setItem('factorify_api_key', apiKey)
+    }
+
+    async function apiFetch(path) {
+      const r = await fetch(API + path, {
+        headers: { 'x-api-key': apiKey }
+      })
+      return r.json()
+    }
+
+    window.loadData = async function() {
+      try {
+        const health = await apiFetch('/health')
+        document.getElementById('api-dot').style.background =
+          health.status === 'ok' ? '#1D9E75' : '#E24B4A'
+
+        const { tasks } = await apiFetch('/tasks')
+        const total     = tasks.length
+        const completed = tasks.filter(t => t.status === 'completed').length
+        const today     = tasks.filter(t =>
+          new Date(t.created_at) > new Date(Date.now() - 86400000)
+        ).length
+        const withDuration = tasks.filter(t => t.duration_ms)
+        const avgMs = withDuration.length
+          ? withDuration.reduce((s, t) => s + t.duration_ms, 0) / withDuration.length
+          : 0
+
+        document.getElementById('total-tasks').textContent   = total
+        document.getElementById('tasks-today').textContent   = today + ' today'
+        document.getElementById('success-rate').textContent  =
+          total ? Math.round(completed / total * 100) + '%' : '-'
+        document.getElementById('avg-duration').textContent  =
+          avgMs ? (avgMs / 1000).toFixed(1) + 's' : '-'
+
+        const list = document.getElementById('tasks-list')
+        list.innerHTML = tasks.map(t => `
+          <div class="task-row">
+            <span class="task-id">${t.id.slice(0, 8)}</span>
+            <span class="task-text">${escHtml(t.task.slice(0, 60))}${t.task.length > 60 ? '...' : ''}</span>
+            <span class="task-status status-${t.status}">${t.status}</span>
+            <span class="task-ms">${t.duration_ms ? (t.duration_ms/1000).toFixed(1)+'s' : '-'}</span>
+          </div>
+        `).join('')
+      } catch (err) {
+        document.getElementById('api-dot').style.background = '#E24B4A'
+        console.error(err)
+      }
+    }
+
+    function escHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    }
+
+    loadData()
+    setInterval(loadData, 15000)
+  </script>
+</body>
+</html>
