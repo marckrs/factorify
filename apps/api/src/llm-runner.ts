@@ -3,6 +3,7 @@
 // ============================================================
 // Replaces the simulated AgentRunner with real Claude API calls.
 // Each subtask is sent to Claude with agent-specific system prompts.
+// Tracks token usage per subtask for cost estimation (ADR-007).
 // ============================================================
 
 import Anthropic from '@anthropic-ai/sdk'
@@ -60,9 +61,26 @@ const DEFAULT_SYSTEM_PROMPT = `You are a specialized agent of the Factorify plat
 Execute the assigned task thoroughly and return complete, actionable output.
 Use TypeScript strict mode. Follow all security and quality standards.`
 
+// Pricing: Sonnet (input=$3/MTok, cache_read=$0.30/MTok, cache_write=$3.75/MTok, output=$15/MTok)
+const PRICE_INPUT       = 3    / 1_000_000
+const PRICE_CACHE_READ  = 0.30 / 1_000_000
+const PRICE_CACHE_WRITE = 3.75 / 1_000_000
+const PRICE_OUTPUT      = 15   / 1_000_000
+
+export interface SubtaskTokenUsage {
+  input_tokens:   number
+  output_tokens:  number
+  cache_write:    number
+  cache_read:     number
+  cost_usd:       number
+}
+
 export class LlmAgentRunner {
   private readonly client: Anthropic
   private readonly model: string
+
+  // Token tracking per subtask — read by executor after orchestrator.execute()
+  private readonly tokenMap = new Map<string, SubtaskTokenUsage>()
 
   constructor(options: {
     apiKey: string
@@ -70,6 +88,36 @@ export class LlmAgentRunner {
   }) {
     this.client = new Anthropic({ apiKey: options.apiKey })
     this.model = options.model ?? 'claude-sonnet-4-20250514'
+  }
+
+  // Get token usage for a specific subtask
+  getTokenUsage(subtaskId: string): SubtaskTokenUsage | undefined {
+    return this.tokenMap.get(subtaskId)
+  }
+
+  // Get aggregated token usage across all tracked subtasks
+  getTotalTokenUsage(): {
+    total_tokens: number
+    total_cost_usd: number
+    cache_write: number
+    cache_read: number
+  } {
+    let totalTokens = 0
+    let totalCost = 0
+    let cacheWrite = 0
+    let cacheRead = 0
+    for (const u of this.tokenMap.values()) {
+      totalTokens += u.input_tokens + u.output_tokens
+      totalCost   += u.cost_usd
+      cacheWrite  += u.cache_write
+      cacheRead   += u.cache_read
+    }
+    return { total_tokens: totalTokens, total_cost_usd: totalCost, cache_write: cacheWrite, cache_read: cacheRead }
+  }
+
+  // Clear tracking for a new task execution
+  clearTokenTracking(): void {
+    this.tokenMap.clear()
   }
 
   async run(subtask: SubTask, agent: AgentSpec): Promise<TaskResult> {
@@ -95,7 +143,6 @@ export class LlmAgentRunner {
       ].join('\n')
 
       // Use cache_control on static system prompt blocks (ADR-007)
-      // Cache hits cost 10% of normal input price — ~77% savings per task
       const systemBlocks: Anthropic.Messages.TextBlockParam[] = [
         {
           type:          'text',
@@ -118,20 +165,40 @@ export class LlmAgentRunner {
 
       const duration_ms = Math.round(performance.now() - startTime)
 
-      // Extract cache metrics from usage
+      // Extract token usage
       const usage = response.usage as Record<string, number>
-      const cacheWrite = usage.cache_creation_input_tokens ?? 0
-      const cacheRead  = usage.cache_read_input_tokens ?? 0
+      const inputTokens  = usage.input_tokens  ?? 0
+      const outputTokens = usage.output_tokens  ?? 0
+      const cacheWrite   = usage.cache_creation_input_tokens ?? 0
+      const cacheRead    = usage.cache_read_input_tokens ?? 0
+
+      // Compute cost: non-cached input + cache reads + cache writes + output
+      const nonCachedInput = inputTokens - cacheRead
+      const costUsd =
+        (nonCachedInput * PRICE_INPUT) +
+        (cacheRead      * PRICE_CACHE_READ) +
+        (cacheWrite     * PRICE_CACHE_WRITE) +
+        (outputTokens   * PRICE_OUTPUT)
+
+      // Store in tracking map
+      this.tokenMap.set(subtask.id, {
+        input_tokens:  inputTokens,
+        output_tokens: outputTokens,
+        cache_write:   cacheWrite,
+        cache_read:    cacheRead,
+        cost_usd:      costUsd,
+      })
 
       console.log(JSON.stringify({
-        level:       'info',
-        event:       'llm_call',
-        agent:       agent.name,
-        subtask_id:  subtask.id,
-        input_tokens:  usage.input_tokens,
-        output_tokens: usage.output_tokens,
-        cache_write: cacheWrite,
-        cache_read:  cacheRead,
+        level:        'info',
+        event:        'llm_call',
+        agent:        agent.name,
+        subtask_id:   subtask.id,
+        input_tokens: inputTokens,
+        output_tokens: outputTokens,
+        cache_write:  cacheWrite,
+        cache_read:   cacheRead,
+        cost_usd:     Math.round(costUsd * 10000) / 10000,
         duration_ms,
       }))
 

@@ -108,17 +108,25 @@ export async function executeTask(params: {
     }
 
     // Phase 2: Execute (calls Claude API for each subtask)
+    llmRunner.clearTokenTracking()
     const result = await orchestrator.execute(plan)
 
     const totalDuration = Math.round(performance.now() - startTime)
 
+    // Aggregate token usage from LLM runner
+    const tokenTotals = llmRunner.getTotalTokenUsage()
+
     console.log(JSON.stringify({
-      level:       'info',
-      event:       'execution_complete',
+      level:           'info',
+      event:           'execution_complete',
       task_id,
-      plan_id:     result.plan_id,
-      success:     result.success,
-      duration_ms: totalDuration,
+      plan_id:         result.plan_id,
+      success:         result.success,
+      duration_ms:     totalDuration,
+      total_tokens:    tokenTotals.total_tokens,
+      total_cost_usd:  Math.round(tokenTotals.total_cost_usd * 10000) / 10000,
+      cache_write:     tokenTotals.cache_write,
+      cache_read:      tokenTotals.cache_read,
     }))
 
     // Store result
@@ -128,23 +136,30 @@ export async function executeTask(params: {
       duration_ms: totalDuration,
     })
 
-    // Log to agents_log
+    // Log to agents_log with real token data
     const subtaskResults = [...result.results.values()]
     await supabase.from('agents_log').insert({
-      agent_type:     'orchestrator',
-      task_preview:   task.slice(0, 100),
-      output_preview: result.summary.slice(0, 200),
-      session_id:     task_id,
-      product_id:     product_id ?? null,
-      block_weights:  subtaskResults.map(r => ({
-        task_id:  r.task_id,
-        status:   r.status,
-        ms:       r.duration_ms,
-        output:   (r.output ?? r.error ?? '').slice(0, 100),
-      })),
-      tokens_used:    0, // TODO: track from LLM responses
-      duration_ms:    totalDuration,
-      success:        result.success,
+      agent_type:         'orchestrator',
+      task_preview:       task.slice(0, 100),
+      output_preview:     result.summary.slice(0, 200),
+      session_id:         task_id,
+      product_id:         product_id ?? null,
+      block_weights:      subtaskResults.map(r => {
+        const tu = llmRunner.getTokenUsage(r.task_id)
+        return {
+          task_id:  r.task_id,
+          status:   r.status,
+          ms:       r.duration_ms,
+          tokens:   tu ? tu.input_tokens + tu.output_tokens : 0,
+          cost_usd: tu ? Math.round(tu.cost_usd * 10000) / 10000 : 0,
+        }
+      }),
+      tokens_used:        tokenTotals.total_tokens,
+      estimated_cost_usd: Math.round(tokenTotals.total_cost_usd * 10000) / 10000,
+      cache_write_tokens: tokenTotals.cache_write,
+      cache_read_tokens:  tokenTotals.cache_read,
+      duration_ms:        totalDuration,
+      success:            result.success,
     })
 
   } catch (err) {
