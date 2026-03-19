@@ -2,10 +2,23 @@
   "name": "@factory/api",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "Factorify — API de entrada de tarefas para o orquestrador",
   "scripts": {
-    "dev": "echo 'placeholder'",
-    "build": "echo 'placeholder'",
-    "test": "echo 'placeholder'"
+    "dev": "tsx watch -r dotenv/config src/index.ts",
+    "build": "tsc --outDir dist",
+    "start": "node dist/index.js",
+    "test": "tsx tests/api.test.ts"
+  },
+  "dependencies": {
+    "fastify": "^5.0.0",
+    "@fastify/cors": "^10.0.0",
+    "@fastify/helmet": "^13.0.0",
+    "@supabase/supabase-js": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
   }
 }
